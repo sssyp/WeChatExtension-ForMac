@@ -35,11 +35,11 @@
 - (void)windowDidLoad
 {
     [super windowDidLoad];
-    if ([[TKWeChatPluginConfig sharedConfig] VAutoForwardingModel]) {
-        self.vmodel = [[TKWeChatPluginConfig sharedConfig] VAutoForwardingModel];
+    if ([[YMWeChatPluginConfig sharedConfig] VAutoForwardingModel]) {
+        self.vmodel = [[YMWeChatPluginConfig sharedConfig] VAutoForwardingModel];
     } else {
         self.vmodel = [VAutoForwardingModel new];
-        [[TKWeChatPluginConfig sharedConfig] saveAutoForwardingModel:self.vmodel];
+        [[YMWeChatPluginConfig sharedConfig] saveAutoForwardingModel:self.vmodel];
     }
 
     [self initSubviews];
@@ -74,8 +74,8 @@
         column.title = YMLocalizedString(@"assistant.autoForwarding.forwardingFromList");
         column.width = 200;
         [tableView addTableColumn:column];
-        if ([TKWeChatPluginConfig sharedConfig].usingDarkTheme) {
-            [[YMThemeManager shareInstance] changeTheme:tableView color:[TKWeChatPluginConfig sharedConfig].mainChatCellBackgroundColor];
+        if ([YMWeChatPluginConfig sharedConfig].usingDarkTheme) {
+            [[YMThemeManager shareInstance] changeTheme:tableView color:[YMWeChatPluginConfig sharedConfig].mainChatCellBackgroundColor];
         }
         tableView;
     });
@@ -116,8 +116,8 @@
         column.title = YMLocalizedString(@"assistant.autoForwarding.forwardingToList");
         column.width = 200;
         [forwardingToTableView addTableColumn:column];
-        if ([TKWeChatPluginConfig sharedConfig].usingDarkTheme) {
-            [[YMThemeManager shareInstance] changeTheme:forwardingToTableView color:[TKWeChatPluginConfig sharedConfig].mainChatCellBackgroundColor];
+        if ([YMWeChatPluginConfig sharedConfig].usingDarkTheme) {
+            [[YMThemeManager shareInstance] changeTheme:forwardingToTableView color:[YMWeChatPluginConfig sharedConfig].mainChatCellBackgroundColor];
         }
         forwardingToTableView;
     });
@@ -142,16 +142,16 @@
 
     self.enableButton = ({
         NSButton *btn = [NSButton tk_checkboxWithTitle:YMLocalizedString(@"assistant.autoForwarding.enable") target:self action:@selector(clickEnableBtn:)];
-        btn.frame = NSMakeRect(30, 20, 230, 20);
-        btn.state = [[TKWeChatPluginConfig sharedConfig] autoForwardingEnable];
+        btn.frame = NSMakeRect(30, 5, 230, 20);
+        btn.state = [[YMWeChatPluginConfig sharedConfig] autoForwardingEnable];
         [YMThemeManager changeButtonTheme:btn];
         btn;
     });
 
     self.enableAllFirendButton = ({
         NSButton *btn = [NSButton tk_checkboxWithTitle:YMLocalizedString(@"assistant.autoForwarding.enableAllFriend") target:self action:@selector(clickEnableAllFriendBtn:)];
-        btn.frame = NSMakeRect(360, 20, 230, 20);
-        btn.state = [[TKWeChatPluginConfig sharedConfig] autoForwardingAllFriend];
+        btn.frame = NSMakeRect(30, 25, 230, 20);
+        btn.state = [[YMWeChatPluginConfig sharedConfig] autoForwardingAllFriend];
         [YMThemeManager changeButtonTheme:btn];
         btn;
     });
@@ -161,9 +161,7 @@
     
     
     self.arrowImageView = ({
-        NSBundle *bundle = [NSBundle bundleWithIdentifier:@"MustangYM.WeChatExtension"];
-           NSString *imgPath= [bundle pathForImageResource:@"arrow_forward.png"];
-           NSImage *arrowImage = [[NSImage alloc] initWithContentsOfFile:imgPath];
+        NSImage *arrowImage = kImageWithName(@"arrow_forward.png");
         NSImageView *imageView = nil;
         if (@available(macOS 10.12, *)) {
             imageView = [NSImageView imageViewWithImage:arrowImage];
@@ -202,7 +200,7 @@
         return;
     }
     if (self.vmodel) {
-        [[TKWeChatPluginConfig sharedConfig] saveAutoForwardingModel:self.vmodel];
+        [[YMWeChatPluginConfig sharedConfig] saveAutoForwardingModel:self.vmodel];
     }
 
 }
@@ -226,7 +224,16 @@
     [picker setShowsOtherNonhumanChats:0];
     [picker setShowsOfficialAccounts:0];
     MMSessionPickerLogic *logic = [picker.listViewController valueForKey:@"m_logic"];
-    NSMutableOrderedSet *orderSet = [logic valueForKey:@"_selectedUserNamesSet"];
+    NSMutableOrderedSet *orderSet = nil;
+    if (LargerOrEqualLongVersion(@"2.4.2.148")) {
+        orderSet = [logic valueForKey:@"_groupsForSearch"];
+    } else {
+        orderSet = [logic valueForKey:@"_selectedUserNamesSet"];
+    }
+    
+    if (!orderSet) {
+        orderSet = [NSMutableOrderedSet new];
+    }
     [orderSet addObjectsFromArray:self.vmodel.forwardingFromContacts];
     [picker.choosenViewController setValue:self.vmodel.forwardingFromContacts forKey:@"selectedUserNames"];
     [picker beginSheetForWindow:self.window completionHandler:^(NSOrderedSet *a1) {
@@ -319,7 +326,17 @@
     [picker setShowsOtherNonhumanChats:0];
     [picker setShowsOfficialAccounts:0];
     MMSessionPickerLogic *logic = [picker.listViewController valueForKey:@"m_logic"];
-    NSMutableOrderedSet *orderSet = [logic valueForKey:@"_selectedUserNamesSet"];
+    NSMutableOrderedSet *orderSet = nil;
+    if (LargerOrEqualLongVersion(@"2.4.2.148")) {
+        orderSet = [logic valueForKey:@"_groupsForSearch"];
+    } else {
+       orderSet = [logic valueForKey:@"_selectedUserNamesSet"];
+    }
+    
+    if (!orderSet) {
+        orderSet = [NSMutableOrderedSet new];
+    }
+    
     [orderSet addObjectsFromArray:self.vmodel.forwardingToContacts];
     [picker.choosenViewController setValue:self.vmodel.forwardingToContacts forKey:@"selectedUserNames"];
     [picker beginSheetForWindow:self.window completionHandler:^(NSOrderedSet *a1) {

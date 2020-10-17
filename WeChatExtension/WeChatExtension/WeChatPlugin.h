@@ -2,11 +2,12 @@
 //  WeChatExtension.h
 //  WeChatExtension
 //
-//  Created by WeChatExtension on 2017/4/19.
-//  Copyright © 2017年 WeChatExtension. All rights reserved.
+//  Created by WeChatExtension on 2019/4/19.
+//  Copyright © 2019年 WeChatExtension. All rights reserved.
 //
 
 #import <Cocoa/Cocoa.h>
+#import <QuartzCore/QuartzCore.h>
 
 FOUNDATION_EXPORT double WeChatPluginVersionNumber;
 FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
@@ -48,7 +49,7 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 - (void)originalImageWithMessage:(id)arg1 completion:(id)arg2;
 @end
 
-@interface MMBrandChatsViewController : NSObject
+@interface MMBrandChatsViewController : NSViewController
 - (void)startChatWithContact:(id)arg1;
 @end
 
@@ -113,6 +114,7 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 - (BOOL)ClearUnRead:(id)arg1 FromID:(unsigned int)arg2 ToID:(unsigned int)arg3;
 - (BOOL)ClearUnRead:(id)arg1 FromCreateTime:(unsigned int)arg2 ToCreateTime:(unsigned int)arg3;
 - (BOOL)hasMsgInChat:(id)arg1;
+- (BOOL)HasMsgInChat:(id)arg1;
 - (id)GetMsgListWithChatName:(id)arg1 fromLocalId:(unsigned int)arg2 limitCnt:(NSInteger)arg3 hasMore:(char *)arg4 sortAscend:(BOOL)arg5;
 - (id)GetMsgListWithChatName:(id)arg1 fromMinCreateTime:(unsigned int)arg2 localId:(unsigned long long)arg3 limitCnt:(unsigned int)arg4 hasMore:(char *)arg5;
 - (id)GetMsgListWithChatName:(id)arg1 fromCreateTime:(unsigned int)arg2 localId:(unsigned long long)arg3 limitCnt:(unsigned int)arg4 hasMore:(char *)arg5 sortAscend:(BOOL)arg6;
@@ -161,14 +163,13 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 @interface MMChatsViewController : NSViewController <NSTableViewDataSource, NSTableViewDelegate>
 @property(nonatomic) __weak NSTableView *tableView;
 @property(retain, nonatomic) MMBrandChatsViewController *brandChatsViewController;
+@property(retain, nonatomic) NSString *selectedUserName; // @synthesize selectedUserName=_selectedUserName;
+@property(retain, nonatomic) NSButton *startNewChatButton;
+- (void)reloadTableView;
 @end
 
 @interface MMContactsViewController : NSViewController
 @property(nonatomic) __weak NSTableView *tableView;
-@end
-
-@interface MMComposeInputViewController : NSViewController
-- (void)viewDidLoad;
 @end
 
 @interface MMComposeTextView : NSTextView
@@ -355,6 +356,7 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 
 @interface MMSessionMgr : NSObject
 @property(retain, nonatomic) NSMutableArray *m_arrSession;
+@property(retain) NSString *m_currentSessionName; // @synthesize m_currentSessionName=_m_currentSessionName;
 - (id)getAllSessions;
 - (id)GetAllSessions;
 - (id)GetSessionAtIndex:(unsigned long long)arg1;//2.3.24废弃
@@ -376,6 +378,10 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 - (id)getContact:(id)arg1;
 - (id)getSessionContact:(id)arg1;
 - (void)onEnterSession:(id)arg1;
+- (void)loadExtendedMsgData;
+- (void)loadBrandSessionData;
+- (void)loadSessionData;
+- (void)loadData;
 @end
 
 @interface BrandSessionMgr : NSObject
@@ -720,6 +726,11 @@ forHTTPHeaderField:(NSString *)field;
 @property(retain, nonatomic) NSColor *normalColor; // @synthesize normalColor=_normalColor;
 @end
 
+@interface MMBadgeOverlayView : NSView
+@property(nonatomic) unsigned long long number; // @synthesize number=_number;
+@property(nonatomic) int style; // @synthesize style=_style;
+@end
+
 @interface MMChatsTableCellView : NSTableCellView
 @property(nonatomic) __weak id <MMChatsTableCellViewDelegate> delegate;
 @property(retain, nonatomic) MMSessionInfo *sessionInfo;
@@ -736,7 +747,9 @@ forHTTPHeaderField:(NSString *)field;
 @property(nonatomic) BOOL shouldRemoveHighlight; // @synthesize shouldRemoveHighlight=_shouldRemoveHighlight;
 @property(retain, nonatomic) NSView *containerView; // @synthesize containerView=_containerView;
 @property(retain, nonatomic) MMSidebarColorIconView *muteIndicator; // @synthesize muteIndicator=_muteIndicator;
-
+@property(retain, nonatomic) CAShapeLayer * _Nullable shapeLayer; // @synthesize shapeLayer=_shapeLayer;
+@property(retain, nonatomic) NSView *avatar;
+@property(retain, nonatomic) MMBadgeOverlayView *badgeView; // @synthesize badgeView=_badgeView;
 @property(nonatomic) BOOL selected; // @synthesize selected=_selected;
 - (void)menuWillOpen:(id)arg1;
 - (void)contextMenuSticky:(id)arg1;
@@ -747,6 +760,12 @@ forHTTPHeaderField:(NSString *)field;
 
 - (void)drawSelectionBackground;
 - (void)updateSelectionBackground;
+- (BOOL)isWxWorkSession;
+- (BOOL)isMentionedUnread;
+- (BOOL)isMsgStatusFailed;
+- (BOOL)isMuted;
+- (BOOL)isSticky;
+- (BOOL)isMarkUnRead;
 @end
 
 @interface CmdItem : NSObject
@@ -804,6 +823,8 @@ forHTTPHeaderField:(NSString *)field;
 @end
 
 @interface MMSearchChatLogTableCellView : NSTableCellView
+@property(retain, nonatomic) MMTextField *descriptionLabel; // @synthesize descriptionLabel=_descriptionLabel;
+@property(retain, nonatomic) MMTextField *titleLabel; // @synthesize titleLabel=_titleLabel;
 @property (nonatomic, strong) NSColor *backgroundColor;
 - (void)setSelected:(BOOL)arg1;
 @end
@@ -892,6 +913,7 @@ forHTTPHeaderField:(NSString *)field;
 @property(retain, nonatomic) MMView *placeHolderView; // @synthesize placeHolderView=_placeHolderView;
 @property(retain, nonatomic) NSView *detailContainerView; // @synthesize detailContainerView=_detailContainerView;
 @property(nonatomic) __weak NSScrollView *scrollViewContainer; // @synthesize scrollViewContainer=_scrollViewContainer;
+@property(retain, nonatomic) NSButton *sendMsgButton; // @synthesize sendMsgButton=_sendMsgButton;
 @end
 
 @interface MMFavoriteCollectionView : NSCollectionView
@@ -913,4 +935,102 @@ forHTTPHeaderField:(NSString *)field;
 
 @interface MMLoginStateMachine : NSObject
 
+@end
+
+@interface SyncService : NSObject
+- (BOOL)ProcessHeartBeatResponse:(id)arg1 isSessionTimeout:(char *)arg2;
+- (BOOL)FillHeartBeatRequestBuffer:(id)arg1 reqCmdId:(int *)arg2 respCmdId:(int *)arg3;
+- (void)CheckHeartBeatIfNeeded;
+- (void)StartCheckHeartBeat;
+- (void)ClearHeartBeat;
+- (void)onServerNotify:(int)arg1 cmdID:(int)arg2 notifyData:(id)arg3;
+- (void)onSyncSuccess;
+- (void)onSyncFail;
+- (void)CheckNeedToSync:(unsigned int)arg1;
+- (void)FixOpenIMSync;
+- (void)BackGroundToForeGroundSync;
+- (void)sendSyncCGIWithScene:(unsigned int)arg1;
+- (BOOL)isSyncClosed;
+- (void)OpenSync;
+- (void)CloseSync;
+- (BOOL)IsNeedSync;
+- (BOOL)IsDoingSync;
+- (BOOL)isCanStartSync;
+- (void)onContactInitSuccess;
+- (void)onContactInitFail;
+- (void)onContactInitUserNameUpdate;
+- (void)onContactInitProcessUpdate:(unsigned int)arg1;
+- (void)tryInitContact;
+- (void)onInitCGIFail;
+- (void)onInitCGIFinish;
+- (void)onInitCGIProcessed:(unsigned int)arg1;
+- (void)StartSyncOnAuthOK;
+- (void)StartInitNoSyncBuffer;
+- (void)StartInit;
+- (void)CancelInit;
+- (BOOL)IsDoingInit;
+- (BOOL)IsNeedInit;
+- (BOOL)IsFirstSync;
+- (void)UnregisterKeyExtension;
+- (void)RegisterKeyExtension;
+- (void)onServiceClearData;
+- (void)onServiceInit;
+- (void)dealloc;
+- (id)init;
+@end
+
+@interface SVGButton : NSButton
+@property(nonatomic) struct CGSize imageSize; // @synthesize imageSize=_imageSize;
+@property(retain, nonatomic) NSColor *alternateColor; // @synthesize alternateColor=_alternateColor;
+@property(retain, nonatomic) NSColor *normalColor; // @synthesize normalColor=_normalColor;
+@property(retain, nonatomic) NSString *imageName; // @synthesize imageName=_imageName;
+- (void)setup;
+- (void)dealloc;
+- (id)initWithCoder:(id)arg1;
+- (id)initWithFrame:(struct CGRect)arg1;
+- (id)init;
+@end
+
+@interface MMComposeInputViewController : NSViewController
+- (void)viewDidLoad;
+@property(nonatomic) __weak SVGButton *openBrandMenuButton; // @synthesize openBrandMenuButton=_openBrandMenuButton;
+@property(nonatomic) __weak SVGButton *closeBrandMenuButton; // @synthesize openBrandMenuButton=_openBrandMenuButton;
+@property(nonatomic) __weak SVGButton *chatManagerButton; // @synthesize chatManagerButton=_chatManagerButton;
+@property(nonatomic) __weak SVGButton *voiceButton; // @synthesize voiceButton=_voiceButton;
+@property(nonatomic) __weak SVGButton *videoButton; // @synthesize videoButton=_videoButton;
+@property(nonatomic) __weak SVGButton *screenShotButton; // @synthesize screenShotButton=_screenShotButton;
+@property(nonatomic) __weak SVGButton *attachmentButton; // @synthesize attachmentButton=_attachmentButton;
+@property(nonatomic) __weak SVGButton *stickerButton; // @synthesize stickerButton=_stickerButton;
+@property(nonatomic) __weak SVGButton *multiTalkButton; // @synthesize stickerButton=_stickerButton;
+@end
+
+@interface MMFavSidebarHeaderRowView : NSTableRowView
+@property(retain, nonatomic) MMSidebarColorIconView *arrowIconView; // @synthesize arrowIconView=_arrowIconView;
+@property(retain, nonatomic) MMSidebarColorIconView *iconView; // @synthesize iconView=_iconView;
+@property(retain, nonatomic) MMSidebarLabelTextField *titleLabel; // @synthesize titleLabel=_titleLabel;
+@property(retain, nonatomic) NSImage *arrowIcon; // @synthesize arrowIcon=_arrowIcon;
+@property(retain, nonatomic) NSImage *icon; // @synthesize icon=_icon;
+@end
+
+@interface MMFavSidebarRowView : NSTableRowView
+@property(retain, nonatomic) MMView *containerView; // @synthesize containerView=_containerView;
+@property(retain, nonatomic) MMImageView *avatarView; // @synthesize avatarView=_avatarView;
+@property(retain, nonatomic) MMSidebarColorIconView *iconView; // @synthesize iconView=_iconView;
+@end
+
+@interface RFOverlayScrollView : NSScrollView
+
+@end
+
+@interface MMContactsMgrRecentRowView : NSView
+@property(retain, nonatomic) NSTextField *nameTextField; // @synthesize nameTextField=_nameTextField;
+@end
+
+@interface MMContactsListViewController : NSViewController
+@property(retain, nonatomic) CAShapeLayer *shapeLayer; // @synthesize shapeLayer=_shapeLayer;
+@end
+
+@interface MMContactsColumn3CellView : NSView
+@property(retain, nonatomic) NSTextField *titleField; // @synthesize titleField=_titleField;
+- (void)updateUIWithContact:(id)arg1;
 @end
